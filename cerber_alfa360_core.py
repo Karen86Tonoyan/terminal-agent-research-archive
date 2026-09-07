@@ -661,6 +661,7 @@ class CerberEngine:
         self.on_process_change: Optional[Callable] = None
         self.on_log_update: Optional[Callable] = None
         self.on_threat_detected: Optional[Callable] = None
+        self._log_count_cache: Dict[Path, tuple] = {}
         
         logger.info(f"CerberEngine initialized. Root: {self.root_path}")
         logger.info(f"Knox status: {self.knox_detector.get_knox_status()}")
@@ -790,7 +791,37 @@ class CerberEngine:
     def _run_log_aggregator(self, stop_event: threading.Event):
         while not stop_event.is_set():
             log_files = list(self.root_path.glob("*.log"))
-            total_lines = sum(1 for f in log_files for _ in open(f))
+            total_lines = 0
+
+            # Prune cache of deleted files
+            log_files_set = set(log_files)
+            for cached_f in list(self._log_count_cache.keys()):
+                if cached_f not in log_files_set:
+                    self._log_count_cache.pop(cached_f, None)
+
+            for f in log_files:
+                try:
+                    stat = f.stat()
+                    mtime = stat.st_mtime
+                    size = stat.st_size
+
+                    if f in self._log_count_cache:
+                        cached_mtime, cached_size, cached_count = self._log_count_cache[f]
+                        if cached_mtime == mtime and cached_size == size:
+                            total_lines += cached_count
+                            continue
+
+                    # Count lines efficiently if not in cache or changed
+                    count = 0
+                    with open(f, 'rb') as fp:
+                        for chunk in iter(lambda: fp.read(1024 * 1024), b''):
+                            count += chunk.count(b'\n')
+
+                    self._log_count_cache[f] = (mtime, size, count)
+                    total_lines += count
+                except Exception as e:
+                    self.log("log_aggregator", f"Error processing {f.name}: {e}")
+
             self.log("log_aggregator", f"日志聚合: {len(log_files)} files | {total_lines} total entries")
             stop_event.wait(12)
     
