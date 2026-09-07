@@ -1,7 +1,2 @@
 packages:
   - docs
-  - sdk/typescript
-  - shell-tool-mcp
-
-ignoredBuiltDependencies:
-  - esbuild
