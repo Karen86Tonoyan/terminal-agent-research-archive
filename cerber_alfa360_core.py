@@ -1213,9 +1213,25 @@ def create_rest_api(engine: CerberEngine):
         version="1.0.0"
     )
     
+    # 🛡️ SECURITY: Restrict CORS origins to prevent unauthorized cross-origin requests
+    # Default allowed origins for local development and ALFA 360 ecosystem
+    default_origins = [
+        "http://localhost",
+        "http://localhost:8360",
+        "http://localhost:3000",
+        "http://127.0.0.1",
+        "http://127.0.0.1:8360",
+        "http://127.0.0.1:3000",
+        "https://alfa-eos-dashboard.netlify.app", # Example production dashboard
+    ]
+
+    # Allow override via environment variable
+    env_origins = os.environ.get("ALFA_EOS_ALLOWED_ORIGINS")
+    allowed_origins = [o.strip() for o in env_origins.split(",")] if env_origins else default_origins
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
