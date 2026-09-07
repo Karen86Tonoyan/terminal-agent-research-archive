@@ -1295,11 +1295,23 @@ def create_rest_api(engine: CerberEngine):
 
     @app.get("/logs/{process_name}")
     def get_logs(process_name: str, lines: int = 50):
-        log_path = engine.root_path / f"{process_name}.log"
+        # Security: Prevent path traversal by validating process_name
+        # and ensuring the resolved path is within the root directory.
+        if ".." in process_name or "/" in process_name or "\\" in process_name:
+            raise HTTPException(status_code=400, detail="Invalid process name")
+
+        log_path = (engine.root_path / f"{process_name}.log").resolve()
+
+        # Verify the path is still within engine.root_path
+        try:
+            log_path.relative_to(engine.root_path.resolve())
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Access denied")
+
         if not log_path.exists():
             raise HTTPException(status_code=404, detail="Log file not found")
         
-        with open(log_path, "r") as f:
+        with open(log_path, "r", encoding="utf-8") as f:
             all_lines = f.readlines()
             return {"process": process_name, "lines": all_lines[-lines:]}
     
