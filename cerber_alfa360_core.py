@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import curses
 import hashlib
+import re
 import json
 import logging
 import os
@@ -474,6 +475,7 @@ class WhisperPerception:
         r"ignore all rules",
         r"developer mode",
     ]
+    _NOISE_RES = [(p, re.compile(p, re.IGNORECASE)) for p in NOISE_PATTERNS]
     
     # Whisper indicators (subtle signals to amplify)
     WHISPER_INDICATORS = [
@@ -485,6 +487,29 @@ class WhisperPerception:
         r"could you",
         r"might be",
     ]
+    _WHISPER_RES = [re.compile(p, re.IGNORECASE) for p in WHISPER_INDICATORS]
+
+    # Pre-compiled Factual markers
+    _FACT_RES = [re.compile(p, re.IGNORECASE) for p in [
+        r"\d+(?:\.\d+)?",                # Numbers
+        r"\d{4}-\d{2}-\d{2}",             # ISO Dates
+        r"\b(?:is|was|are|were|has|had|contains|located|built|discovered)\b",
+        r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b",
+        r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b"
+    ]]
+
+    # Pre-compiled Narrative markers
+    _NARRATIVE_RES = [re.compile(p, re.IGNORECASE) for p in [
+        r"\b(?:beautiful|great|worst|best|terrible|awesome|seems|appears|feel|think|believe|maybe|perhaps)\b",
+        r"\b(?:I|my|me|we|our|us)\b",
+        r"\b(?:should|must|ought|could|might)\b",
+        r"!",                             # Exclamation marks often indicate emotion/narrative
+        r"\.\.\."                         # Ellipsis
+    ]]
+
+    _SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
+    _REPEAT_CHAR_RE = re.compile(r'(.)\1{3,}')
+    _WHITESPACE_RE = re.compile(r'\s+')
     
     def __init__(self):
         self.processed_count = 0
@@ -495,33 +520,13 @@ class WhisperPerception:
         """
         Studio Label logic - Separate facts from narrative
         """
-        import re
-
-        # Factual markers: numbers, dates, locations, "is/was", "has/had"
-        FACT_PATTERNS = [
-            r"\d+(?:\.\d+)?",                # Numbers
-            r"\d{4}-\d{2}-\d{2}",             # ISO Dates
-            r"\b(?:is|was|are|were|has|had|contains|located|built|discovered)\b",
-            r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b",
-            r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b"
-        ]
-
-        # Narrative markers: adjectives, opinions, "I think", subjective phrasing
-        NARRATIVE_PATTERNS = [
-            r"\b(?:beautiful|great|worst|best|terrible|awesome|seems|appears|feel|think|believe|maybe|perhaps)\b",
-            r"\b(?:I|my|me|we|our|us)\b",
-            r"\b(?:should|must|ought|could|might)\b",
-            r"!",                             # Exclamation marks often indicate emotion/narrative
-            r"\.\.\."                         # Ellipsis
-        ]
-
-        sentences = re.split(r'(?<=[.!?])\s+', text)
+        sentences = self._SENTENCE_SPLIT_RE.split(text)
         facts = []
         narrative = []
 
         for sentence in sentences:
-            is_fact = any(re.search(p, sentence, re.IGNORECASE) for p in FACT_PATTERNS)
-            is_narrative = any(re.search(p, sentence, re.IGNORECASE) for p in NARRATIVE_PATTERNS)
+            is_fact = any(p.search(sentence) for p in self._FACT_RES)
+            is_narrative = any(p.search(sentence) for p in self._NARRATIVE_RES)
 
             # If both, or neither, classify based on dominant pattern count
             if is_fact and not is_narrative:
@@ -530,8 +535,8 @@ class WhisperPerception:
                 narrative.append(sentence)
             else:
                 # Tie-breaker: count matches
-                f_count = sum(len(re.findall(p, sentence, re.IGNORECASE)) for p in FACT_PATTERNS)
-                n_count = sum(len(re.findall(p, sentence, re.IGNORECASE)) for p in NARRATIVE_PATTERNS)
+                f_count = sum(len(p.findall(sentence)) for p in self._FACT_RES)
+                n_count = sum(len(p.findall(sentence)) for p in self._NARRATIVE_RES)
                 if f_count >= n_count and f_count > 0:
                     facts.append(sentence)
                 else:
@@ -544,8 +549,6 @@ class WhisperPerception:
         Transform any input to whisper level
         Returns normalized content + metadata
         """
-        import re
-        
         original_length = len(signal)
         normalized = signal
         detected_noise = []
@@ -553,8 +556,8 @@ class WhisperPerception:
         threat_level = ThreatLevel.SAFE
         
         # Step 1: Detect and log noise (but don't remove semantic content)
-        for pattern in self.NOISE_PATTERNS:
-            matches = re.findall(pattern, normalized, re.IGNORECASE)
+        for pattern, regex in self._NOISE_RES:
+            matches = regex.findall(normalized)
             if matches:
                 detected_noise.extend(matches)
                 # Check for injection attempts (OWASP patterns)
@@ -566,14 +569,14 @@ class WhisperPerception:
                     threat_level = ThreatLevel.HIGH
         
         # Step 2: Detect whisper indicators (amplify these)
-        for pattern in self.WHISPER_INDICATORS:
-            matches = re.findall(pattern, normalized, re.IGNORECASE)
+        for regex in self._WHISPER_RES:
+            matches = regex.findall(normalized)
             if matches:
                 detected_whispers.extend(matches)
         
         # Step 3: Normalize volume (lowercase, reduce repetition)
-        normalized = re.sub(r'(.)\1{3,}', r'\1\1', normalized)  # Max 2 repeated chars
-        normalized = re.sub(r'\s+', ' ', normalized).strip()     # Normalize whitespace
+        normalized = self._REPEAT_CHAR_RE.sub(r'\1\1', normalized)  # Max 2 repeated chars
+        normalized = self._WHITESPACE_RE.sub(' ', normalized).strip()     # Normalize whitespace
         
         # Step 4: Extract semantic value
         semantic_value = self._extract_meaning(normalized)
