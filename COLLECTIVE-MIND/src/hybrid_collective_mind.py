@@ -339,12 +339,13 @@ class AntColony:
     
     def get_pheromone_matrix(self) -> Dict[str, Dict[str, float]]:
         """Zwróć macierz feromonów jako słownik"""
-        result = {}
-        for i, from_node in enumerate(self.NODES):
-            result[from_node] = {}
-            for j, to_node in enumerate(self.NODES):
-                result[from_node][to_node] = round(self.pheromones[i][j], 4)
-        return result
+        return {
+            from_node: {
+                to_node: round(self.pheromones[i][j], 4)
+                for j, to_node in enumerate(self.NODES)
+            }
+            for i, from_node in enumerate(self.NODES)
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
