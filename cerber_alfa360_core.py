@@ -930,7 +930,6 @@ class CerberEngine:
     def scan_knowledge_sources(self, source_type: str):
         """Scan Google Drive or Samsung Notes for Knowledge Graph"""
         self.log("木", f"Scanning {source_type} for knowledge integration...")
-        time.sleep(1) # Simulate work
         if source_type not in self.knowledge_graph["sources"]:
             self.knowledge_graph["sources"].append(source_type)
         self.knowledge_graph["last_scan"] = datetime.now().isoformat()

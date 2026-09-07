@@ -27,13 +27,13 @@ Każde użycie tego frameworka **MUSI** zawierać:
 ✅ Kopiować i rozpowszechniać  
 ✅ Modyfikować i rozwijać  
 ✅ Używać komercyjnie (z cytowaniem)  
-✅ Integrować z własnymi projektami  
+✅ Integrować z własnymi projektami
 
 ### Czego NIE możesz:
 ❌ Usuwać informacji o autorze  
 ❌ Zmieniać nazwy frameworka  
 ❌ Publikować bez cytowania  
-❌ Używać do szkodzenia ludziom  
+❌ Używać do szkodzenia ludziom
 
 ### Chronione Marki:
 - ALFA 360
@@ -62,13 +62,13 @@ Every use of this framework **MUST** include:
 ✅ Copy and redistribute  
 ✅ Modify and extend  
 ✅ Use commercially (with attribution)  
-✅ Integrate with your projects  
+✅ Integrate with your projects
 
 ### You MAY NOT:
 ❌ Remove author information  
 ❌ Rename the framework  
 ❌ Publish without attribution  
-❌ Use to harm people  
+❌ Use to harm people
 
 ---
 
@@ -100,7 +100,7 @@ Jede Nutzung **MUSS** enthalten:
 
 ### APA Style:
 ```
-Tonoyan, K. (2025). ALFA ECOSYSTEM: Complete AI Security & Consciousness Framework. 
+Tonoyan, K. (2025). ALFA ECOSYSTEM: Complete AI Security & Consciousness Framework.
 ALFA Foundation. https://github.com/Karen86Tonoyan/ALFA-ECOSYSTEM
 ```
 
@@ -133,7 +133,7 @@ ALFA Foundation. https://github.com/Karen86Tonoyan/ALFA-ECOSYSTEM
 
 **Karen Tonoyan**  
 ALFA Foundation  
-Legnica, Poland  
+Legnica, Poland
 
 ---
 

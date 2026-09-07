@@ -248,7 +248,7 @@ This is a React TypeScript application with:
 
 ## Key files:
 - `/src/auth/` - Authentication logic
-- `/src/api/` - API client code  
+- `/src/api/` - API client code
 - `/server/` - Backend services
 ```
 
